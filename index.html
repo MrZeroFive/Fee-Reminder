@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FEE REMINDER</title>
+<style>
+:root{
+  --bg:#FFFFFF; --field:#F8F9FA; --text:#4A4A4A;
+  --green:#3F6F35; --greenBright:#4E8A43; --active:#EAF6E7;
+  --border:#D6DADF; --soft:#EEF4EC; --rose:#C85B73;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans",sans-serif}
+.wrapper{max-width:540px;margin:auto;padding:18px 14px 34px}
+.card{background:#fff;border:1px solid #E5E8EA;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(63,111,53,.10)}
+.header{text-align:center;margin-bottom:22px}
+.header h1{margin:0;color:var(--green);font-size:29px;font-weight:900;letter-spacing:1.8px}
+.date{display:inline-block;margin-top:9px;padding:7px 14px;border-radius:20px;background:var(--soft);color:var(--green);font-size:13px;font-weight:700}
+.field{margin-bottom:14px}
+label{display:block;margin-bottom:7px;color:var(--text);font-size:14px;font-weight:800}
+input{
+ width:100%;height:49px;padding:10px 13px;background:var(--field);color:#222;
+ border:1.5px solid var(--border);border-radius:12px;font-size:16px;font-weight:500;outline:none;transition:.18s
+}
+input::placeholder{color:#969CA2;opacity:1}
+input:focus{background:var(--active);border-color:var(--greenBright);box-shadow:0 0 0 3px rgba(78,138,67,.15)}
+.section-title{margin:20px 0 13px;padding-left:10px;border-left:4px solid var(--greenBright);color:var(--text);font-size:17px;font-weight:900}
+.total{margin-top:19px;padding:16px;background:var(--soft);border:1px solid #D8E7D4;border-radius:14px;display:flex;justify-content:space-between;align-items:center;direction:ltr}
+.total span{font-size:14px;font-weight:800}.total strong{font-size:23px;color:var(--green)}
+.buttons{display:grid;gap:10px;margin-top:15px}
+button{width:100%;height:49px;border:0;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;transition:.15s}
+button:active{transform:scale(.985)}
+.whatsapp{background:var(--green);color:#fff}.whatsapp:hover{background:var(--greenBright)}
+.sms{background:#56616B;color:#fff}.previewBtn{background:#F0F5EE;color:var(--green);border:1px solid #D6E4D2}
+.resetBtn{background:#fff;color:var(--text);border:1px solid var(--border)}
+.preview{display:none;margin-top:15px;padding:17px;border:1px solid #D8E7D4;border-radius:14px;background:#FAFCF9}
+.preview.show{display:block}
+.preview h3{margin:0 0 10px;color:var(--green);font-size:16px}
+.previewText{white-space:pre-wrap;direction:rtl;text-align:right;font-family:"Noto Sans Arabic",Tahoma,Arial,sans-serif;font-size:14px;line-height:1.75;color:#333}
+.previewType{font-size:11px;color:#7C858C;margin-bottom:10px}
+.copyBtn{height:42px;margin-top:12px;background:var(--green);color:white}
+.note{text-align:center;margin-top:13px;color:#8A8E92;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrapper"><div class="card">
+<div class="header"><h1>FEE REMINDER</h1><div class="date" id="dateDisplay"></div></div>
+
+<div class="field"><label for="student">Student Name</label><input id="student" type="text" autocomplete="off" placeholder="Enter student name" autofocus></div>
+<div class="field"><label for="className">Class</label><input id="className" type="text" autocomplete="off" placeholder="Enter class"></div>
+
+<div class="section-title">Fee Details</div>
+<div class="field"><label for="previous">Previous Fee</label><input id="previous" type="number" min="0" inputmode="numeric" placeholder="Enter amount"></div>
+<div class="field"><label for="current">Current Fee</label><input id="current" type="number" min="0" inputmode="numeric" placeholder="Enter amount"></div>
+<div class="field"><label for="promotion">Promotion Fee</label><input id="promotion" type="number" min="0" inputmode="numeric" placeholder="Enter amount"></div>
+<div class="field"><label for="admission">Admission Fee</label><input id="admission" type="number" min="0" inputmode="numeric" placeholder="Enter amount"></div>
+<div class="field"><label for="phone">WhatsApp / Mobile Number</label><input id="phone" type="tel" inputmode="tel" autocomplete="off" placeholder="03XXXXXXXXX"></div>
+
+<div class="total"><span>Total Payable</span><strong id="total">Rs. 0</strong></div>
+
+<div class="buttons">
+<button class="previewBtn" onclick="togglePreview()">Preview Message</button>
+<button class="whatsapp" onclick="sendWhatsApp()">WhatsApp</button>
+<button class="sms" onclick="sendSMS()">SIM SMS</button>
+<button class="resetBtn" onclick="resetForm()">Clear / Reset</button>
+</div>
+
+<div class="preview" id="previewBox">
+<h3>Message Preview</h3>
+<div class="previewType">WhatsApp format — bold text included</div>
+<div class="previewText" id="previewText"></div>
+<button class="copyBtn" onclick="copyMessage()">Copy Message</button>
+</div>
+
+<div class="note">Fee Reminder</div>
+</div></div>
+
+<script>
+const fields=["student","className","previous","current","promotion","admission","phone"];
+const feeIds=["previous","current","promotion","admission"];
+feeIds.forEach(id=>document.getElementById(id).addEventListener("input",updateTotal));
+
+function amount(id){return Number(document.getElementById(id).value)||0}
+function val(id){return document.getElementById(id).value.trim()}
+function fmt(n){return n.toLocaleString("en-PK")}
+function updateTotal(){
+ const total=feeIds.reduce((s,id)=>s+amount(id),0);
+ document.getElementById("total").textContent="Rs. "+fmt(total);
+}
+function buildMessage(whatsapp=false){
+ const student=val("student")||"[Student Name]", cls=val("className")||"[Class]";
+ const previous=amount("previous"),current=amount("current"),promotion=amount("promotion"),admission=amount("admission");
+ const total=previous+current+promotion+admission, rows=[];
+ if(previous)rows.push(["پچھلے بقایا جات",previous]);
+ if(current)rows.push(["موجودہ فیس",current]);
+ if(promotion)rows.push(["پروموشن فیس",promotion]);
+ if(admission)rows.push(["داخلہ فیس",admission]);
+ if(whatsapp){
+  const B=t=>`*${t}*`;
+  return `السلام علیکم!
+
+امید ہے کہ آپ خیریت و عافیت سے ہوں گے۔ اللہ تعالیٰ آپ کو اور آپ کے اہلِ خانہ کو ہمیشہ خوش و سلامت رکھے۔
+
+آپ کو مؤدبانہ اطلاع دی جاتی ہے کہ آپ کے بچے ${B(student)}، جماعت ${B(cls)} کی فیس کے سلسلے میں درج ذیل رقم واجب الادا ہے:
+
+${rows.map(([l,n])=>B(l+": "+fmt(n)+" روپے")).join("\n")}
+${B("کل واجب الادا رقم: "+fmt(total)+" روپے")}
+
+براہِ کرم اپنی سہولت کے مطابق اپنے بچے کی فیس جلد از جلد جمع کروا دیں، تاکہ فیس کا ریکارڈ بروقت مکمل کیا جا سکے۔
+
+آپ کے تعاون اور بروقت ادائیگی کا تہہ دل سے شکریہ۔
+
+${B("اکاؤنٹنٹ")}
+${B("پنجکوڑہ پبلک ہائی سکول")}`;
+ }
+ return `السلام علیکم!
+
+امید ہے کہ آپ خیریت و عافیت سے ہوں گے۔ اللہ تعالیٰ آپ کو اور آپ کے اہلِ خانہ کو ہمیشہ خوش و سلامت رکھے۔
+
+آپ کو مؤدبانہ اطلاع دی جاتی ہے کہ آپ کے بچے ${student}، جماعت ${cls} کی فیس کے سلسلے میں درج ذیل رقم واجب الادا ہے:
+
+${rows.map(([l,n])=>l+": "+fmt(n)+" روپے").join("\n")}
+کل واجب الادا رقم: ${fmt(total)} روپے
+
+براہِ کرم اپنی سہولت کے مطابق اپنے بچے کی فیس جلد از جلد جمع کروا دیں، تاکہ فیس کا ریکارڈ بروقت مکمل کیا جا سکے۔
+
+آپ کے تعاون اور بروقت ادائیگی کا تہہ دل سے شکریہ۔
+
+اکاؤنٹنٹ
+پنجکوڑہ پبلک ہائی سکول`;
+}
+function normalizedPhone(){let p=val("phone").replace(/\D/g,"");if(p.startsWith("03"))p="92"+p.slice(1);return p}
+function sendWhatsApp(){const p=normalizedPhone();if(!p){alert("Please enter the mobile number.");return}location.href="https://wa.me/"+p+"?text="+encodeURIComponent(buildMessage(true))}
+function sendSMS(){let p=val("phone").replace(/[^\d+]/g,"");if(!p){alert("Please enter the mobile number.");return}location.href="sms:"+p+"?body="+encodeURIComponent(buildMessage(false))}
+function togglePreview(){
+ const box=document.getElementById("previewBox");
+ box.classList.toggle("show");
+ if(box.classList.contains("show"))document.getElementById("previewText").textContent=buildMessage(true).replace(/\*/g,"");
+}
+async function copyMessage(){
+ try{await navigator.clipboard.writeText(buildMessage(false));alert("Message copied successfully.");}
+ catch(e){alert("Copy is not available on this device.")}
+}
+function resetForm(){
+ fields.forEach(id=>document.getElementById(id).value="");
+ updateTotal();document.getElementById("previewBox").classList.remove("show");
+ document.getElementById("student").focus();
+}
+document.getElementById("dateDisplay").textContent=new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
+fields.forEach((id,i)=>{
+ document.getElementById(id).addEventListener("keydown",e=>{
+  if(e.key==="Enter" && i<fields.length-1){e.preventDefault();document.getElementById(fields[i+1]).focus();}
+ });
+});
+updateTotal();
+</script>
+</body>
+</html>
